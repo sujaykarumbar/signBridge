@@ -6,6 +6,7 @@ import '../../history/screens/history_screen.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../saved/screens/saved_screen.dart';
 import '../../settings/screens/settings_screen.dart';
+import '../../vocabulary/screens/include_vocabulary_screen.dart';
 import '../widgets/app_guide_modal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -28,7 +29,7 @@ class _SignBridgeHomeState extends State<SignBridgeHome>
   final List<Widget> _screens = const [
     _HomeTab(),
     TranslateScreen(),   
-    _SLPPlaceholder(),  
+    IncludeVocabularyScreen(),  
     HistoryScreen(),
   ];
 
@@ -115,7 +116,7 @@ class _BottomNav extends StatelessWidget {
             children: [
               _navItem(0, Icons.home_outlined, Icons.home, 'Home'),
               _navItem(1, Icons.camera_alt_outlined, Icons.camera_alt, 'SLT'),
-              _navItem(2, Icons.keyboard_outlined, Icons.keyboard, 'SLP'),
+              _navItem(2, Icons.menu_book_outlined, Icons.menu_book_rounded, 'Dictionary'),
               _navItem(3, Icons.history_outlined, Icons.history, 'History'),
             ],
           ),
@@ -551,14 +552,14 @@ class _ModeGrid extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: _ModeCard(
-            icon: Icons.keyboard_rounded,
+            icon: Icons.menu_book_rounded,
             iconBg: const Color(0xFFEEF2FF),
             iconColor: const Color(0xFF4B6CF7),
-            title: 'SLP',
-            subtitle: 'Text → Sign',
+            title: 'Dictionary',
+            subtitle: '263 Signs',
             description:
-                'Type text and watch it converted to sign language poses.',
-            chipLabel: 'Produce',
+                'Explore AI4Bharat INCLUDE dataset signs with category filters.',
+            chipLabel: 'Explore',
             chipBg: const Color(0xFFEEF2FF),
             chipColor: const Color(0xFF4B6CF7),
             onTap: onSLP,
@@ -973,30 +974,3 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-
-class _SLPPlaceholder extends StatelessWidget {
-  const _SLPPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.keyboard_rounded, size: 48, color: Color(0xFF4B6CF7)),
-            SizedBox(height: 16),
-            Text('SLP Screen',
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E2158))),
-            SizedBox(height: 8),
-            Text('Text → Sign Language Pose',
-                style: TextStyle(color: Colors.black45)),
-          ],
-        ),
-      ),
-    );
-  }
-}

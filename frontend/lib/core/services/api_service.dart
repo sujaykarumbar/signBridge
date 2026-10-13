@@ -299,4 +299,50 @@ class ApiService {
       );
     }
   }
+
+  // ── AI4Bharat INCLUDE Dataset (Zenodo Record 4010759) ──
+
+  static Future<Map<String, dynamic>> fetchIncludeInfo() async {
+    final response = await http
+        .get(Uri.parse('$baseUrl/dataset/include/info'))
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to fetch INCLUDE dataset info');
+  }
+
+  static Future<List<String>> fetchIncludeCategories() async {
+    final response = await http
+        .get(Uri.parse('$baseUrl/dataset/include/categories'))
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body);
+      return List<String>.from(data['categories'] ?? []);
+    }
+    return ['All'];
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchIncludeSigns({
+    String? category,
+    String? query,
+    bool coreOnly = false,
+  }) async {
+    final params = <String, String>{};
+    if (category != null && category != 'All') params['category'] = category;
+    if (query != null && query.isNotEmpty) params['query'] = query;
+    if (coreOnly) params['core_only'] = 'true';
+
+    final uri = Uri.parse('$baseUrl/dataset/include/signs').replace(queryParameters: params);
+    final response = await http.get(uri).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body);
+      final rawList = data['signs'] as List? ?? [];
+      return rawList.map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+    throw Exception('Failed to fetch INCLUDE signs');
+  }
 }

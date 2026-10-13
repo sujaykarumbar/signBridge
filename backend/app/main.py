@@ -738,6 +738,42 @@ async def reconstruct_sentence_route(
         raise StarletteHTTPException(status_code=500, detail=str(e))
 
 
+# ── AI4Bharat INCLUDE Dataset Routes (Zenodo Record 4010759) ──
+
+@app.get("/dataset/include/info")
+async def get_include_dataset_info():
+    """Returns official Zenodo record info, categories, and dataset stats."""
+    from app.services.include_dataset_service import INCLUDEDatasetService
+    svc = INCLUDEDatasetService()
+    return svc.get_info()
+
+
+@app.get("/dataset/include/categories")
+async def get_include_categories():
+    """Returns all 15 categories of Indian Sign Language in the INCLUDE dataset."""
+    from app.services.include_dataset_service import INCLUDEDatasetService
+    svc = INCLUDEDatasetService()
+    return {"categories": svc.get_categories()}
+
+
+@app.get("/dataset/include/signs")
+async def get_include_signs(
+    category: str = None,
+    query: str = None,
+    core_only: bool = False,
+):
+    """Returns all 263 ISL signs from the INCLUDE dataset with category mapping."""
+    from app.services.include_dataset_service import INCLUDEDatasetService
+    svc = INCLUDEDatasetService()
+    signs = svc.get_signs(category=category, query=query, core_only=core_only)
+    return {
+        "count": len(signs),
+        "total_lexicon": 263,
+        "dataset_source": "https://zenodo.org/records/4010759",
+        "signs": signs,
+    }
+
+
 # SLT WebSocket route 
 @app.websocket("/slt/v1/ws")
 async def websocket_translate(
