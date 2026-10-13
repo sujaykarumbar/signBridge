@@ -40,25 +40,25 @@ class GeminiISLService:
 
         t0 = time.time()
         try:
-            # Sample up to 6 frames evenly across the 16-frame window
+            # Sample exactly 3 key frames (start, apex/middle, end) for fast 1-2s inference
             n = len(jpegs)
-            if n > 6:
-                indices = [int(i * (n - 1) / 5) for i in range(6)]
-                sampled = [jpegs[i] for i in indices]
+            if n >= 3:
+                sampled = [jpegs[0], jpegs[n // 2], jpegs[-1]]
             else:
                 sampled = jpegs
 
             parts = [
                 {
                     "text": (
-                        "You are an expert Indian Sign Language (ISL) interpreter. "
-                        "Analyze these consecutive frames of a signer performing Indian Sign Language. "
-                        "Identify the gesture, word, or complete sentence they are communicating. "
-                        "Return JSON with: "
-                        "{\"sentence\": \"<complete English translation of what the person is communicating>\", "
-                        "\"prediction\": \"<main sign or gloss in uppercase, e.g. HELLO, TIME, HELP, FREE>\", "
-                        "\"confidence\": <float between 0.60 and 0.99>}. "
-                        "If no sign or gesture is made (resting), return {\"sentence\": \"\", \"prediction\": \"\", \"confidence\": 0.0}."
+                        "You are a master Indian Sign Language (ISL) interpreter. "
+                        "Carefully examine the signer's hand shapes, hand positions, palm orientation, and movement across these consecutive frames. "
+                        "Accurately translate their Indian Sign Language into natural English. "
+                        "Recognize common ISL signs such as: Namaste, Hello, Good morning, How are you, I am fine, Thank you, Please, Help, Time, Name, Father, Mother, Brother, Sister, Friend, House, Water, Food, Work, School, Where, What, Happy, Sad, Yes, No, etc. "
+                        "Return a single JSON object: "
+                        "{\"sentence\": \"<natural English sentence of what the person is communicating>\", "
+                        "\"prediction\": \"<main ISL sign or gloss in UPPERCASE, e.g. HELLO, FINE, HELP, TIME, NAME>\", "
+                        "\"confidence\": <float between 0.70 and 0.99>}. "
+                        "If the person is resting, transition hands, or not performing any recognisable sign, return: {\"sentence\": \"\", \"prediction\": \"\", \"confidence\": 0.0}."
                     )
                 }
             ]
@@ -76,12 +76,17 @@ class GeminiISLService:
                 "contents": [{"parts": parts}],
                 "generationConfig": {
                     "response_mime_type": "application/json",
-                    "temperature": 0.2
+                    "temperature": 0.1
                 }
             }
 
             headers = {"Content-Type": "application/json"}
             resp = requests.post(self.endpoint, json=payload, headers=headers, timeout=self.timeout)
+
+            # Retry once on temporary 503 spike or 429 rate limit
+            if resp.status_code in (503, 429):
+                time.sleep(0.5)
+                resp = requests.post(self.endpoint, json=payload, headers=headers, timeout=self.timeout)
 
             if resp.status_code != 200:
                 logger.warning("Gemini Vision request failed: %s %s", resp.status_code, resp.text)

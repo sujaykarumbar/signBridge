@@ -97,7 +97,7 @@ CLIP_STRIDE = 6
 # pool - e.g. with a 2-worker shared pool and this set to 2, one user
 # could otherwise queue unlimited windows and starve everyone else.
 # Keep this <= the shared pool's worker count.
-MAX_CONCURRENT_INFERENCES = 2
+MAX_CONCURRENT_INFERENCES = 1
 
 # Approximately 12.5 incoming frames/sec.
 FRAME_DELAY = 0.08
@@ -631,11 +631,15 @@ async def send_inference_result(
         inference_latency,
     )
 
-    if not label:
+    sentence = result.get("sentence", "")
+    if not label and sentence:
+        label = sentence
+
+    if not label and not sentence:
         return False
 
-    # Filter out low-confidence raw model noise (< 0.35)
-    if confidence < 0.35:
+    # Filter out low-confidence raw model noise (< 0.30)
+    if confidence < 0.30:
         logger.debug("Filtered low-confidence noise label: %s (%.0f%%)", label, confidence * 100)
         return False
 

@@ -50,7 +50,8 @@ class _TranslateScreenState extends State<TranslateScreen>
 
   // Frame Throttling
   int? _lastFrameTime;
-  static const int _frameIntervalMs = 80; // ~12 FPS
+  bool _isConvertingFrame = false;
+  static const int _frameIntervalMs = 120; // ~8.3 FPS: smooth preview, minimal thermal/CPU load
 
   // static const primaryColor = Color(0xFF2B2D5D);
   // static const accentColor = Color(0xFF4B6CF7);
@@ -228,9 +229,13 @@ class _TranslateScreenState extends State<TranslateScreen>
       }
     }
     _lastFrameTime = null;
+    _isConvertingFrame = false;
     await controller.startImageStream((CameraImage image) {
       if (!mounted || !_cameraActive || !_isStreaming ||
           controller != _cameraController || !_wsService.isConnected) {
+        return;
+      }
+      if (_isConvertingFrame) {
         return;
       }
       final now = _frameClock.elapsedMilliseconds;
@@ -238,10 +243,15 @@ class _TranslateScreenState extends State<TranslateScreen>
         return;
       }
       _lastFrameTime = now;
+      _isConvertingFrame = true;
+
       try {
-        _wsService.sendFrame(
-          CameraFrameConverter.toJpeg(image, rotationDegrees: _currentRotation),
+        final jpeg = CameraFrameConverter.toJpeg(
+          image,
+          rotationDegrees: _currentRotation,
+          quality: 65,
         );
+        _wsService.sendFrame(jpeg);
       } catch (e) {
         // Stop a broken stream instead of silently showing "Analyzing" forever.
         setState(() {
@@ -249,6 +259,8 @@ class _TranslateScreenState extends State<TranslateScreen>
           _statusMessage = 'Frame conversion failed: $e';
         });
         unawaited(_queueCameraOperation(_stopCameraStream));
+      } finally {
+        _isConvertingFrame = false;
       }
     });
     if (!mounted || !_cameraActive) return;

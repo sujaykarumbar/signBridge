@@ -674,7 +674,7 @@ def run_inference(
             save_test_video(_as_images(frames))
 
         # 1. Local ISL Alphabet / Digits classifier (<1ms)
-        # Scan buffered frames for detected hand landmarks
+        # Scan buffered frames for detected hand landmarks (only accept intentional, high-confidence letters)
         try:
             from app.services.isl_alphabet_service import ISLAlphabetService
             _alpha_svc = ISLAlphabetService()
@@ -683,12 +683,12 @@ def run_inference(
                 for f in reversed(frames):
                     if isinstance(f, BufferedFrame) and f.hand_landmarks:
                         a_res = _alpha_svc.predict_landmarks(f.hand_landmarks)
-                        if a_res.get("confidence", 0.0) >= 0.50:
+                        if a_res.get("confidence", 0.0) >= 0.75:
                             if best_alpha is None or a_res["confidence"] > best_alpha["confidence"]:
                                 best_alpha = a_res
-                                if best_alpha["confidence"] >= 0.75:
+                                if best_alpha["confidence"] >= 0.85:
                                     break
-                if best_alpha and best_alpha.get("confidence", 0.0) >= 0.50:
+                if best_alpha and best_alpha.get("confidence", 0.0) >= 0.75:
                     logger.info(
                         "[ISL Alphabet] Local match: %s (%.0f%%)",
                         best_alpha.get("prediction"),
@@ -709,7 +709,7 @@ def run_inference(
                     lm_arr = np.array(lm_seq, dtype=np.float32)
                     if np.count_nonzero(lm_arr) > 40:
                         inc_res = _include_svc.predict_sequence(lm_arr)
-                        if inc_res.get("confidence", 0.0) >= 0.40:
+                        if inc_res.get("confidence", 0.0) >= 0.50:
                             logger.info(
                                 "[INCLUDE Classifier] Local match: %s (%.0f%%)",
                                 inc_res.get("prediction"),

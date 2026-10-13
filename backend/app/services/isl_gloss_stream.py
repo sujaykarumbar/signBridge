@@ -19,7 +19,7 @@ class ISLGlossStreamTracker:
         self,
         dwell_seconds: float = 1.2,
         pause_timeout_seconds: float = 1.6,
-        min_confidence: float = 0.35,
+        min_confidence: float = 0.55,
         decoder: GeminiGrammarDecoder = None
     ):
         self.dwell_seconds = dwell_seconds
