@@ -1,0 +1,47 @@
+name: sign_bridge
+description: "SignBridge - Real-time Sign Language Translation App"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.9
+  flutter_screenutil: ^5.9.3
+
+  # Camera
+  camera: ^0.11.0
+  
+  # Networking
+  http: ^1.2.1
+  web_socket_channel: ^3.0.1
+  connectivity_plus: ^7.3.2
+  
+  # Permissions
+  permission_handler: ^11.3.1
+  
+  # State management
+  provider: ^6.1.2
+  
+  # Utilities
+  intl: ^0.20.3
+  flutter_tts: ^4.0.2
+  shared_preferences: ^2.3.2
+  image: ^4.10.1
+  flutter_dotenv: ^6.0.1
+
+dev_dependencies:
+  camera_platform_interface: ^2.10.0
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
