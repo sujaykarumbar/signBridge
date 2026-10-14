@@ -1217,25 +1217,9 @@ This project is licensed under the **MIT License**.
 
 See [`LICENSE`](LICENSE) for details.
 
----
 
-# Contributors
 
-<a href="https://github.com/Uni-Creator/signBridge/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Uni-Creator/signBridge" />
-</a>
 
----
-
-# Contact
-
-For questions or inquiries:
-
-**Abhay Singh**
-
-Email: `abhayr24564@gmail.com`
-
----
 
 ## Repository
 
