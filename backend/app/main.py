@@ -30,7 +30,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI, Request, Header, Depends
+from fastapi import FastAPI, Request, Header, Depends, UploadFile, File
 from fastapi import Cookie, WebSocket, WebSocketException,WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -772,6 +772,50 @@ async def get_include_signs(
         "dataset_source": "https://zenodo.org/records/4010759",
         "signs": signs,
     }
+
+
+@app.post("/slt/v1/translate-video")
+async def translate_video_route(
+    file: UploadFile = File(...),
+):
+    """
+    Translates an uploaded ISL video file directly with high precision.
+    Extracts frames using OpenCV, analyzes gestures with ISL continuous models and Gemini Vision,
+    and returns the complete English translation.
+    """
+    import tempfile
+    import shutil
+    from app.services.video_translation_service import VideoTranslationService
+
+    suffix = os.path.splitext(file.filename or "")[1] or ".mp4"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp_path = tmp.name
+        shutil.copyfileobj(file.file, tmp)
+
+    try:
+        service = VideoTranslationService()
+        result = await run_in_threadpool(service.translate_video_file, tmp_path)
+        if result.get("error"):
+            raise HTTPException(status_code=502, detail=result["error"])
+
+        translation = (
+            result.get("translated_sentence") or result.get("sentence") or ""
+        ).strip()
+        if not translation:
+            raise HTTPException(
+                status_code=422,
+                detail=result.get(
+                    "message",
+                    "No translation was recognized. Try a clearer video.",
+                ),
+            )
+        return result
+    finally:
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            pass
 
 
 # SLT WebSocket route 

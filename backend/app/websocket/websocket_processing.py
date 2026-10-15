@@ -378,6 +378,8 @@ def apply_landmarks(
     image: Image.Image,
     pose_detector,
     hand_detector,
+    *,
+    mask_lower_third: bool = True,
 ) -> tuple[Image.Image, np.ndarray, list]:
     """
     Run MediaPipe pose/hand detection, draw landmarks, and extract feature vectors.
@@ -392,11 +394,20 @@ def apply_landmarks(
 
     img_rgb = np.array(image)
 
+    if mask_lower_third:
+        # Focus live-camera detection above lower-third captions and overlays.
+        h_orig = img_rgb.shape[0]
+        cutoff_y = int(h_orig * 0.82)
+        detection_rgb = img_rgb.copy()
+        detection_rgb[cutoff_y:, :] = 0
+    else:
+        detection_rgb = img_rgb
+
     # Built-in mp.solutions detector (Pose / Hands) - only if not Tasks detector (.detect)
     is_tasks = (pose_detector and hasattr(pose_detector, "detect")) or (hand_detector and hasattr(hand_detector, "detect"))
     if not is_tasks and (hasattr(pose_detector, "process") or hasattr(hand_detector, "process")):
-        pose_result = pose_detector.process(img_rgb) if pose_detector and hasattr(pose_detector, "process") else None
-        hand_result = hand_detector.process(img_rgb) if hand_detector and hasattr(hand_detector, "process") else None
+        pose_result = pose_detector.process(detection_rgb) if pose_detector and hasattr(pose_detector, "process") else None
+        hand_result = hand_detector.process(detection_rgb) if hand_detector and hasattr(hand_detector, "process") else None
 
         has_pose = bool(pose_result and pose_result.pose_landmarks)
         has_hands = bool(hand_result and hand_result.multi_hand_landmarks)
@@ -405,10 +416,12 @@ def apply_landmarks(
 
         if not has_pose and not has_hands:
             del img_rgb
+            del detection_rgb
             return image, feats, raw_hands
 
         img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
         del img_rgb
+        del detection_rgb
 
         if has_pose:
             mp_drawing.draw_landmarks(
@@ -434,7 +447,7 @@ def apply_landmarks(
 
     mp_image = mp.Image(
         image_format=mp.ImageFormat.SRGB,
-        data=img_rgb,
+        data=detection_rgb,
     )
 
     pose_result = (
@@ -673,7 +686,53 @@ def run_inference(
         if save_test_videos:
             save_test_video(_as_images(frames))
 
-        # 1. Local ISL Alphabet / Digits classifier (<1ms)
+        # 1. Local Continuous ISL Sentence Classifier (< 2ms)
+        # Evaluates full temporal motion trajectory across buffered frames
+        try:
+            from app.services.isl_sentence_service import ISLSentenceService
+            _sent_svc = ISLSentenceService()
+            if _sent_svc.is_ready():
+                s_res = _sent_svc.predict_window(frames)
+                if s_res.get("confidence", 0.0) >= 0.60 and s_res.get("sentence"):
+                    logger.info(
+                        "[ISL Sentence] Recognized continuous sentence: '%s' (%.0f%%)",
+                        s_res.get("sentence"),
+                        s_res.get("confidence", 0.0) * 100,
+                    )
+                    s_res["total_latency_ms"] = round((time.time() - t0) * 1000, 2)
+                    return s_res
+        except Exception as s_err:
+            logger.debug("ISL sentence check skipped: %s", s_err)
+
+        # 2. Local ISL 114-Word Gesture Classifier (<2ms)
+        try:
+            from app.services.isl_words_service import ISLWordsService
+            _words_svc = ISLWordsService()
+            if _words_svc.is_ready():
+                best_word = None
+                for f in reversed(frames):
+                    if isinstance(f, BufferedFrame) and f.hand_landmarks:
+                        w_res = _words_svc.predict_landmarks(
+                            f.hand_landmarks,
+                            pose_landmarks=f.features_134,
+                        )
+                        if w_res.get("confidence", 0.0) >= 0.40:
+                            if best_word is None or w_res["confidence"] > best_word["confidence"]:
+                                best_word = w_res
+                                if best_word["confidence"] >= 0.65:
+                                    break
+                if best_word and best_word.get("confidence", 0.0) >= 0.40:
+                    logger.info(
+                        "[ISL Words] Local match: %s (%.0f%%)",
+                        best_word.get("prediction"),
+                        best_word.get("confidence", 0.0) * 100,
+                    )
+                    best_word["total_latency_ms"] = round((time.time() - t0) * 1000, 2)
+                    return best_word
+        except Exception as w_err:
+            logger.debug("ISL words check skipped: %s", w_err)
+
+        # 2. Local ISL Alphabet / Digits classifier (<1ms)
         # Scan buffered frames for detected hand landmarks (only accept intentional, high-confidence letters)
         try:
             from app.services.isl_alphabet_service import ISLAlphabetService
@@ -750,10 +809,11 @@ def run_inference(
             if "error" in result:
                 result = model_api.predict(_as_images(frames))
 
-        # Reject low-confidence hallucinations from Swin3D (< 0.50)
-        if result.get("confidence", 0.0) < 0.50:
+        # Reject low-confidence hallucinations from Swin3D (< 0.70)
+        if result.get("confidence", 0.0) < 0.70:
             result["prediction"] = ""
             result["confidence"] = 0.0
+            result["sentence"] = ""
 
         result["total_latency_ms"] = round(
             (time.time() - t0) * 1000,

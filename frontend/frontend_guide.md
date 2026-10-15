@@ -39,6 +39,7 @@ const String wsUrl  = 'wss://project.onrender.com/ws';        // Render WebSocke
 > [!NOTE]
 > Use `10.0.2.2` to reach your local machine from an Android emulator.
 > For a physical device on the same Wi-Fi network, use your machine's local IP (e.g., `192.168.x.x`).
+> The backend must be running, and the computer's firewall must allow its port. `127.0.0.1` on a physical phone refers to the phone itself, not the computer.
 
 ## 3. Install Dependencies
 

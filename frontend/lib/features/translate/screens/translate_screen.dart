@@ -10,6 +10,7 @@ import '../../../core/services/camera_frame_converter.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/translation_provider.dart';
 import '../../../core/services/websocket_service.dart';
+import 'video_upload_screen.dart';
 
 class TranslateScreen extends StatefulWidget {
   const TranslateScreen({super.key, this.webSocketService});
@@ -514,8 +515,29 @@ class _TranslateScreenState extends State<TranslateScreen>
                     ),
                   ),
                   const SizedBox(width: 6),
+                  // Upload Video Screen Shortcut
+                  GestureDetector(
+                    onTap: () {
+                      if (_isStreaming) _stopStreaming();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const VideoUploadScreen(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.video_file_rounded,
+                          color: Colors.white, size: 20),
+                    ),
+                  ),
                   // Switch Camera
-                  if (_cameras.length > 1)
+                  if (_cameras.length > 1) ...[
+                    const SizedBox(width: 6),
                     GestureDetector(
                       onTap: _cameraOperations == 0 ? _switchCamera : null,
                       child: Container(
@@ -528,6 +550,7 @@ class _TranslateScreenState extends State<TranslateScreen>
                             color: Colors.white, size: 20),
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -820,33 +843,70 @@ class _TranslateScreenState extends State<TranslateScreen>
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.white70, fontSize: 12)),
                   ),
-                  // Start / Stop button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isStreaming
-                            ? Colors.red.shade600
-                            : const Color(0xFF4B6CF7),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                  // Start / Stop camera button & Upload Video button
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _isStreaming
+                                ? Colors.red.shade600
+                                : const Color(0xFF4B6CF7),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 4,
+                          ),
+                          onPressed: _cameraInitialized && _cameraOperations == 0
+                              ? (_isStreaming ? _stopStreaming : _startStreaming)
+                              : null,
+                          icon: Icon(_isStreaming
+                              ? Icons.stop_circle_outlined
+                              : Icons.videocam),
+                          label: Text(
+                            _isStreaming ? 'Stop' : 'Start Camera',
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
                         ),
-                        elevation: 4,
                       ),
-                      onPressed: _cameraInitialized && _cameraOperations == 0
-                          ? (_isStreaming ? _stopStreaming : _startStreaming)
-                          : null,
-                      icon: Icon(_isStreaming
-                          ? Icons.stop_circle_outlined
-                          : Icons.play_circle_outlined),
-                      label: Text(
-                        _isStreaming ? 'Stop Streaming' : 'Start Translating',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: Colors.black.withValues(alpha: 0.5),
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Color(0xFF2BB673), width: 1.5),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: () {
+                            if (_isStreaming) {
+                              _stopStreaming();
+                            }
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const VideoUploadScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.file_upload_outlined, color: Color(0xFF2BB673), size: 18),
+                          label: const Text(
+                            'Upload Video',
+                            style: TextStyle(
+                                color: Color(0xFF2BB673),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),

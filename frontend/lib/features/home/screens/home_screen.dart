@@ -7,6 +7,7 @@ import '../../auth/screens/login_screen.dart';
 import '../../saved/screens/saved_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../vocabulary/screens/include_vocabulary_screen.dart';
+import '../../translate/screens/video_upload_screen.dart';
 import '../widgets/app_guide_modal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -232,6 +233,13 @@ class _HomeTab extends StatelessWidget {
                           .findAncestorStateOfType<_SignBridgeHomeState>();
                       home?._onNavTap(2);
                     },
+                    onVideoUpload: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const VideoUploadScreen(),
+                        ),
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 24),
@@ -240,6 +248,13 @@ class _HomeTab extends StatelessWidget {
                   const _SectionLabel(label: 'Quick actions'),
                   const SizedBox(height: 12),
                   _QuickActions(
+                    onVideoUpload: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const VideoUploadScreen(),
+                        ),
+                      );
+                    },
                     onHistory: () {
                       final home = context
                           .findAncestorStateOfType<_SignBridgeHomeState>();
@@ -526,46 +541,183 @@ class _HeroBanner extends StatelessWidget {
 
 
 class _ModeGrid extends StatelessWidget {
-  const _ModeGrid({required this.onSLT, required this.onSLP});
+  const _ModeGrid({
+    required this.onSLT,
+    required this.onSLP,
+    required this.onVideoUpload,
+  });
   final VoidCallback onSLT;
   final VoidCallback onSLP;
+  final VoidCallback onVideoUpload;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _ModeCard(
-            icon: Icons.camera_alt_rounded,
-            iconBg: const Color(0xFFE6FAF3),
-            iconColor: const Color(0xFF0F6E56),
-            title: 'SLT',
-            subtitle: 'Sign → Text',
-            description:
-                'Point camera at signs and get instant text translation.',
-            chipLabel: 'Translate',
-            chipBg: const Color(0xFFE6FAF3),
-            chipColor: const Color(0xFF0F6E56),
-            onTap: onSLT,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _ModeCard(
+                icon: Icons.camera_alt_rounded,
+                iconBg: const Color(0xFFE6FAF3),
+                iconColor: const Color(0xFF0F6E56),
+                title: 'Live Camera',
+                subtitle: 'Real-time SLT',
+                description:
+                    'Point camera at signs for real-time kinematic detection.',
+                chipLabel: 'Live Stream',
+                chipBg: const Color(0xFFE6FAF3),
+                chipColor: const Color(0xFF0F6E56),
+                onTap: onSLT,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _ModeCard(
+                icon: Icons.video_collection_rounded,
+                iconBg: const Color(0xFFFFF0F5),
+                iconColor: const Color(0xFFD63384),
+                title: 'Upload Video',
+                subtitle: 'Continuous ISL',
+                description:
+                    'Upload video clips or reels with caption masking & translation.',
+                chipLabel: 'Upload Video',
+                chipBg: const Color(0xFFFFF0F5),
+                chipColor: const Color(0xFFD63384),
+                onTap: onVideoUpload,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _ModeCard(
-            icon: Icons.menu_book_rounded,
-            iconBg: const Color(0xFFEEF2FF),
-            iconColor: const Color(0xFF4B6CF7),
-            title: 'Dictionary',
-            subtitle: '263 Signs',
-            description:
-                'Explore AI4Bharat INCLUDE dataset signs with category filters.',
-            chipLabel: 'Explore',
-            chipBg: const Color(0xFFEEF2FF),
-            chipColor: const Color(0xFF4B6CF7),
-            onTap: onSLP,
-          ),
+        const SizedBox(height: 12),
+        _WideModeCard(
+          icon: Icons.menu_book_rounded,
+          iconBg: const Color(0xFFEEF2FF),
+          iconColor: const Color(0xFF4B6CF7),
+          title: 'Dictionary & Vocabulary',
+          subtitle: '263 Signs • AI4Bharat INCLUDE',
+          description:
+              'Explore standard Indian Sign Language vocabulary with category filters.',
+          chipLabel: 'Explore Signs',
+          chipBg: const Color(0xFFEEF2FF),
+          chipColor: const Color(0xFF4B6CF7),
+          onTap: onSLP,
         ),
       ],
+    );
+  }
+}
+
+class _WideModeCard extends StatelessWidget {
+  const _WideModeCard({
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.description,
+    required this.chipLabel,
+    required this.chipBg,
+    required this.chipColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconBg;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final String description;
+  final String chipLabel;
+  final Color chipBg;
+  final Color chipColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E2158),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: chipBg,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          chipLabel,
+                          style: TextStyle(
+                            color: chipColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.black54,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -663,11 +815,13 @@ class _ModeCard extends StatelessWidget {
 
 class _QuickActions extends StatelessWidget {
   const _QuickActions({
+    required this.onVideoUpload,
     required this.onHistory,
     required this.onSaved,
     required this.onSettings,
   });
 
+  final VoidCallback onVideoUpload;
   final VoidCallback onHistory;
   final VoidCallback onSaved;
   final VoidCallback onSettings;
@@ -678,6 +832,16 @@ class _QuickActions extends StatelessWidget {
       children: [
         Expanded(
           child: _QAButton(
+            icon: Icons.video_file_rounded,
+            iconBg: const Color(0xFFFFF0F5),
+            iconColor: const Color(0xFFD63384),
+            label: 'Upload Video',
+            onTap: onVideoUpload,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _QAButton(
             icon: Icons.history_rounded,
             iconBg: const Color(0xFFFEF3E2),
             iconColor: const Color(0xFFBA7517),
@@ -685,7 +849,7 @@ class _QuickActions extends StatelessWidget {
             onTap: onHistory,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: _QAButton(
             icon: Icons.bookmark_outline_rounded,
@@ -695,7 +859,7 @@ class _QuickActions extends StatelessWidget {
             onTap: onSaved,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
           child: _QAButton(
             icon: Icons.settings_outlined,

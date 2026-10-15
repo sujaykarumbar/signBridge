@@ -17,9 +17,9 @@ class ISLGlossStreamTracker:
 
     def __init__(
         self,
-        dwell_seconds: float = 1.2,
-        pause_timeout_seconds: float = 1.6,
-        min_confidence: float = 0.55,
+        dwell_seconds: float = 0.8,
+        pause_timeout_seconds: float = 1.0,
+        min_confidence: float = 0.40,
         decoder: GeminiGrammarDecoder = None
     ):
         self.dwell_seconds = dwell_seconds
@@ -64,6 +64,17 @@ class ISLGlossStreamTracker:
             "current_glosses": list(self.gloss_sequence),
             "sentence": None
         }
+
+    def add_glosses(self, glosses: list[str], confidence: float = 1.0) -> list[dict]:
+        """
+        Add multiple glosses from continuous sequence segmentation or multimodal inference.
+        """
+        results = []
+        for g in glosses:
+            res = self.add_gloss(g, confidence)
+            if res.get("accepted"):
+                results.append(res)
+        return results
 
     def check_pause_and_reconstruct(self, min_glosses: int = 1) -> dict:
         """

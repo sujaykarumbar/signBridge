@@ -676,6 +676,52 @@ class BackendRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json(), {"error": "Failed to delete history"})
 
+    def test_video_translation_returns_recognized_sentence(self):
+        service = MagicMock()
+        service.translate_video_file.return_value = {
+            "translated_sentence": "Hello there.",
+            "sentence": "Hello there.",
+        }
+        service_module = SimpleNamespace(
+            VideoTranslationService=MagicMock(return_value=service)
+        )
+
+        with patch.dict(
+            sys.modules,
+            {"app.services.video_translation_service": service_module},
+        ):
+            response = self.client.post(
+                "/slt/v1/translate-video",
+                files={"file": ("sign.mp4", b"video", "video/mp4")},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["translated_sentence"], "Hello there.")
+        service.translate_video_file.assert_called_once()
+
+    def test_video_translation_does_not_report_empty_result_as_success(self):
+        service = MagicMock()
+        service.translate_video_file.return_value = {
+            "translated_sentence": "",
+            "sentence": "",
+            "message": "No clear signs detected.",
+        }
+        service_module = SimpleNamespace(
+            VideoTranslationService=MagicMock(return_value=service)
+        )
+
+        with patch.dict(
+            sys.modules,
+            {"app.services.video_translation_service": service_module},
+        ):
+            response = self.client.post(
+                "/slt/v1/translate-video",
+                files={"file": ("sign.mp4", b"video", "video/mp4")},
+            )
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["error"], "No clear signs detected.")
+
 
     # TESTS - WebSocket route wiring (behaviour lives in WebSocketHandlerTests)
     def test_ws_route_is_registered(self):

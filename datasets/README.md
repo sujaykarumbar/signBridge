@@ -65,3 +65,14 @@ This folder contains Indian Sign Language (ISL) datasets downloaded and integrat
   - [`backend/models/include50_no_cnn_lstm.pth`](file:///c:/Users/USER/Downloads/signBridge/signBridge/backend/models/include50_no_cnn_lstm.pth) (85.6 MB, official AI4Bharat BiLSTM landmark model).
 - **Inference Service**:
   - [`backend/app/services/include_classifier_service.py`](file:///c:/Users/USER/Downloads/signBridge/signBridge/backend/app/services/include_classifier_service.py) (134-dimensional MediaPipe Hands + Pose landmark sequences).
+
+## Gemini video translation evaluation
+
+Use the labeled ISL-CSLTR sentence videos to measure Gemini output rather than trusting its self-reported confidence:
+
+```powershell
+python scripts\evaluate_gemini_isl.py --samples 10
+python scripts\evaluate_gemini_isl.py --samples 10 --run
+```
+
+The first command only previews a deterministic, class-balanced sample. The second sends those public dataset clips through the same masked-frame upload pipeline used by the app and reports exact-match accuracy and failures. It can consume Gemini quota. It does not read personal videos or train a model. The service tries `gemini-3.5-flash` as a fallback after the configured model; set `GEMINI_FALLBACK_MODELS` in `backend/.env` to override that comma-separated list with models currently supported by the API key. Model availability does not guarantee translation accuracy.

@@ -73,50 +73,24 @@ def log_ws_sent(kind: str, size: int):
 
 # WebSocket configuration
 
-CLIP_LENGTH = 16
+CLIP_LENGTH = 12
+CLIP_STRIDE = 3
 
-# Number of NEW frames required before creating the next overlapping window.
-#
-# Window 0: frames 0  - 15
-# Window 1: frames 6  - 21
-# Window 2: frames 12 - 27
-# Window 3: frames 18 - 33
-#
-# Therefore:
-#   overlap = 16 - 6 = 10 frames
-CLIP_STRIDE = 6
+# Concurrency cap per connection
+MAX_CONCURRENT_INFERENCES = 2
 
-# Per-connection soft cap on how many inference jobs ONE user may have
-# in flight at the same time.
-#
-# IMPORTANT: this is no longer the server's global concurrency limit.
-# The true global limit is how many worker threads the *shared*
-# inference_executor passed in from main.py has (see
-# MAX_INFERENCE_WORKERS there). This per-connection value only stops a
-# single busy/misbehaving connection from monopolizing that shared
-# pool - e.g. with a 2-worker shared pool and this set to 2, one user
-# could otherwise queue unlimited windows and starve everyone else.
-# Keep this <= the shared pool's worker count.
-MAX_CONCURRENT_INFERENCES = 1
-
-# Approximately 12.5 incoming frames/sec.
-FRAME_DELAY = 0.08
+# Keyframe subsampling rate: uniform 12-16 FPS (14 FPS = ~0.071s interval) to prevent buffer saturation.
+FRAME_DELAY = 0.07
 
 RESIZE_DIM = 224
 
 SAVE_TEST_VIDEOS = False
 
-# How long to wait for a client message before treating the connection
-# as idle.
+# How long to wait for a client message before treating the connection as idle.
 RECEIVE_TIMEOUT = 30.0
 
-# Upper bound on how many decoded-but-not-yet-landmarked frames we'll
-# hold onto if MediaPipe falls behind the incoming frame rate. This
-# turns "processing is slower than the camera" into bounded latency
-# (oldest waiting frame gets dropped, with a log) instead of unbounded
-# memory growth. It should never be hit at the intended ~12.5 fps
-# input rate with a healthy landmark pipeline.
-MAX_PENDING_LANDMARK_FRAMES = 8
+# Upper bound on pending landmark frames.
+MAX_PENDING_LANDMARK_FRAMES = 16
 
 
 # Input validation limits.
@@ -651,29 +625,36 @@ async def send_inference_result(
         },
     )
 
-    sentence = result.get("sentence", "")
+    sentence = result.get("translated_sentence") or result.get("sentence", "")
+    detected_glosses = result.get("detected_glosses", [])
+    sign_type = result.get("sign_type", "continuous_sentence" if len(detected_glosses) > 1 else "isolated_word")
+
     if sentence:
         await send_json(
             ws,
             {
                 "type": "sentence",
                 "sentence": sentence,
-                "original_glosses": [label] if label else [],
+                "original_glosses": detected_glosses if detected_glosses else ([label] if label else []),
+                "sign_type": sign_type,
+                "confidence": confidence,
                 "latency_ms": total_latency,
             },
         )
 
     if gloss_tracker is not None:
-        gloss_res = gloss_tracker.add_gloss(label, confidence)
-        if gloss_res.get("accepted"):
-            await send_json(
-                ws,
-                {
-                    "type": "gloss_update",
-                    "gloss": gloss_res.get("new_gloss"),
-                    "current_glosses": gloss_res.get("current_glosses"),
-                },
-            )
+        glosses_to_add = detected_glosses if detected_glosses else ([label] if label else [])
+        for g in glosses_to_add:
+            gloss_res = gloss_tracker.add_gloss(g, confidence)
+            if gloss_res.get("accepted"):
+                await send_json(
+                    ws,
+                    {
+                        "type": "gloss_update",
+                        "gloss": gloss_res.get("new_gloss"),
+                        "current_glosses": gloss_res.get("current_glosses"),
+                    },
+                )
 
     return True
 
